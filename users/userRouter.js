@@ -3,11 +3,19 @@ const express = require('express');
 const Users = require('./userDb')
 const router = express.Router();
 
-router.post('/', (req, res) => {
-
+router.post('/', validateUser,  (req, res) => {
+const {name} = req.body
+Users.insert({name})
+.then(user => {
+    res.status(201).json(user)
+})
+.catch(err => {
+    console.log(err)
+    res.status(500).json({error: 'error inserting user'})
+})
 });
 
-router.post('/:id/posts', (req, res) => {
+router.post('/:id/posts', validateUser, (req, res) => {
 
 });
 
@@ -27,12 +35,25 @@ router.get('/:id', validateUserId,  (req, res) => {
 res.status(200).json(req.user)
 });
 
-router.get('/:id/posts', (req, res) => {
+router.get('/:id/posts', validateUserId, (req, res) => {
+const {id} = req.params
 
+Users.getUserPosts(id)
+.then(posts => res.status(200).json(posts))
+.catch(err => {
+    console.log(err)
+    res.status(500).json({error: 'error getting user posts'})
+})
 });
 
-router.delete('/:id', (req, res) => {
-
+router.delete('/:id', validateUserId, (req, res) => {
+ const {id} = req.user
+ Users.remove(id)
+ .then(() => res.status(204).end())
+ .catch(err => {
+     console.log(err)
+     res.status(500).json({error: 'error deleting user'})
+ })
 });
 
 router.put('/:id', validateUserId, (req, res) => {
@@ -73,7 +94,15 @@ function validateUserId(req, res, next) {
 }
 
 function validateUser(req, res, next) {
+    const {name} = req.body
+if (!name) {
+    return res.status(400).json({error: 'name required'})
+}
+if(typeof name !== 'string') {
+    return res.status(400).json({error: 'name must be a string'})
+}
 
+next()
 };
 
 function validatePost(req, res, next) {
